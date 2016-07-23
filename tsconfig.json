@@ -1,0 +1,35 @@
+{
+	"compilerOptions": {
+		"noEmitOnError": false,
+		"noImplicitAny": true,
+		"noImplicitReturns": true,
+		"noFallthroughCasesInSwitch": true,
+		"declaration": false,
+		"sourceMap": false,
+		"target": "es6",
+		"module": "commonjs",
+		"removeComments": false,
+		"noLib": false,
+		"outDir": "built",
+		"rootDir": "src"
+	},
+	"compileOnSave": false,
+	"atom": {
+		"rewriteTsconfig": true
+	},
+	"filesGlob": [
+		"./node_modules/typescript/lib/lib.es6.d.ts",
+		"./typings/bundle.d.ts",
+		"./src/**/*.ts"
+	],
+	"files": [
+		"./node_modules/typescript/lib/lib.es6.d.ts",
+		"./typings/bundle.d.ts",
+		"./src/argv.ts",
+		"./src/check-dependencies.ts",
+		"./src/config.ts",
+		"./src/db.ts",
+		"./src/index.ts",
+		"./src/server.ts"
+	]
+}
