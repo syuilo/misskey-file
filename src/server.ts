@@ -10,6 +10,7 @@ import * as express from 'express';
 import * as bodyParser from 'body-parser';
 import * as favicon from 'serve-favicon';
 import * as cors from 'cors';
+import * as mongodb from 'mongodb';
 
 import config from './config';
 
@@ -48,11 +49,27 @@ app.get('/', (req, res) => {
 /**
  * Routing
  */
-const db = (<any>global).db;
+const db = <mongodb.Db>(<any>global).db;
 const files = db.collection('drive_files');
-app.get('/:id', async (req, res) => {
-	const file = await files.findOne({_id: req.params.id});
-	res.send(file.data);
+
+app.get('/:id/:name', async (req, res): Promise<void> => {
+	const file = await files.findOne({_id: new mongodb.ObjectID(req.params.id)});
+
+	if (file === null) {
+		res.status(404).sendFile(__dirname + '/resources/not-found.png');
+		return;
+	}
+
+	res.header({
+		'Content-Type': file.type,
+		'Content-Length': file.datasize
+	});
+
+	if (req.query.download) {
+		res.header('Content-Disposition', 'attachment');
+	}
+
+	res.send(file.data.buffer);
 });
 
 /**

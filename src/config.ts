@@ -10,7 +10,7 @@ const home = process.env[
 	process.platform === 'win32' ? 'USERPROFILE' : 'HOME'];
 
 // Name of directory that includes config file
-const dirName = '.misskey-core';
+const dirName = '.misskey-file';
 
 // Name of config file
 const fileName = 'config.yml';
