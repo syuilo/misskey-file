@@ -46,6 +46,10 @@ app.get('/', (req, res) => {
 	res.render('index');
 });
 
+app.get('/default-avatar.jpg', (req, res) => {
+	res.sendFile(__dirname + '/resources/avatar.jpg');
+});
+
 /**
  * Routing
  */
