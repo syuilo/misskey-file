@@ -8,6 +8,7 @@ import * as bodyParser from 'body-parser';
 import * as favicon from 'serve-favicon';
 import * as cors from 'cors';
 import * as mongodb from 'mongodb';
+import * as gm from 'gm';
 
 import config from './config';
 
@@ -53,7 +54,7 @@ app.get('/:id/:name', async (req, res): Promise<void> => {
 	const file = await files.findOne({_id: new mongodb.ObjectID(req.params.id)});
 
 	if (file === null) {
-		res.status(404).sendFile(__dirname + '/resources/not-found.png');
+		res.status(404).sendFile(__dirname + '/resources/dummy.png');
 		return;
 	}
 
@@ -67,6 +68,40 @@ app.get('/:id/:name', async (req, res): Promise<void> => {
 	}
 
 	res.send(file.data.buffer);
+});
+
+app.get('/:id/:name/thumbnail', async (req, res): Promise<void> => {
+	const file = await files.findOne({_id: new mongodb.ObjectID(req.params.id)});
+
+	if (file === null) {
+		res.status(404).sendFile(__dirname + '/resources/dummy.png');
+		return;
+	}
+
+	if (!/^image\/.*$/.test(file.type)) {
+		res.sendFile(__dirname + '/resources/dummy.png');
+		return;
+	}
+
+	let g = gm(file.data.buffer);
+
+	if (req.query.size) {
+		g = g.resize(req.query.size, req.query.size);
+	}
+
+	g
+	.compress('jpeg')
+	.quality(req.query.quality || 80)
+	.toBuffer('jpeg', (err, img) => {
+		if (err !== undefined && err !== null) {
+			console.error(err);
+			res.sendStatus(500);
+			return;
+		}
+
+		res.header('Content-Type', 'image/jpeg');
+		res.send(img);
+	});
 });
 
 /**
