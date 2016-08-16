@@ -1,53 +1,14 @@
-//////////////////////////////////////////////////
-// CONFIGURATION MANAGER
-//////////////////////////////////////////////////
-
-import * as fs from 'fs';
-import * as yaml from 'js-yaml';
-
-// Detect home path
-const home = process.env[
-	process.platform === 'win32' ? 'USERPROFILE' : 'HOME'];
-
-// Name of directory that includes config file
-const dirName = '.misskey-file';
-
-// Name of config file
-const fileName = 'config.yml';
-
-// Resolve paths
-const dirPath = `${home}/${dirName}`;
-const path = `${dirPath}/${fileName}`;
+import { IConfig } from './iconfig';
+import load from './load-config';
 
 let conf: IConfig;
 
 try {
 	// Load and parse the config
-	conf = <IConfig>yaml.safeLoad(fs.readFileSync(path, 'utf8'));
-	console.log('Loaded config');
+	conf = <IConfig>load();
 } catch (e) {
 	console.error('Failed to load config: ' + e);
 	process.exit(1);
 }
 
 export default conf;
-
-export interface IConfig {
-	maintainer: string;
-	mongo: {
-		uri: string;
-		options: {
-			user: string;
-			pass: string;
-		}
-	};
-	port: number;
-	bindPort: number;
-	bindIp: string;
-	https: {
-		enable: boolean;
-		keyPath: string;
-		certPath: string;
-	};
-	url: string;
-}

@@ -1,22 +1,7 @@
-//////////////////////////////////////////////////
-// CORE DB
-//////////////////////////////////////////////////
-
 import * as mongodb from 'mongodb';
-import config from './config';
+import { IConfig } from './iconfig';
 
-export default () => new Promise<mongodb.Db>((resolve, reject) => {
-	const client = mongodb.MongoClient;
-
-	client.connect(config.mongo.uri, config.mongo.options, (err, db) => {
-		if (err) {
-			console.log(err);
-			reject(err);
-			return;
-		}
-
-		console.log('Connected to MongoDB');
-
-		resolve(db);
-	});
-});
+export default async function(config: IConfig): Promise<mongodb.Db> {
+	const uri = `mongodb://${config.mongodb.user}:${config.mongodb.pass}@${config.mongodb.host}:${config.mongodb.port}/${config.mongodb.db}`;
+	return await mongodb.MongoClient.connect(uri);
+};

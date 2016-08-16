@@ -1,11 +1,11 @@
 //////////////////////////////////////////////////
-// MISSKEY-FILE ENTORY POINT
+// ENTORY POINT
 //////////////////////////////////////////////////
 
 /**
  * The MIT License (MIT)
  *
- * Copyright (c) 2016 syuilo
+ * Copyright (c) 2014-2016 syuilo
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,96 +31,164 @@ Error.stackTraceLimit = Infinity;
 /**
  * Module dependencies
  */
+import * as os from 'os';
 import * as cluster from 'cluster';
-import {logInfo, logWarn, logFailed} from 'log-cool';
+import { logInfo, logDone, logWarn, logFailed } from 'log-cool';
+import * as chalk from 'chalk';
 const Git = require('nodegit');
 const portUsed = require('tcp-port-used');
-import argv from './argv';
-import config from './config';
+import yesno from './utils/cli/yesno';
+import ProgressBar from './utils/cli/progressbar';
+import config from './load-config';
+import configGenerator from './config-generator';
 import initdb from './db';
-import checkDependencies from './check-dependencies';
 
-// Init babel
-require("babel-core/register");
-require("babel-polyfill");
+// init babel
+require('babel-core/register');
+require('babel-polyfill');
 
 const env = process.env.NODE_ENV;
 const isProduction = env === 'production';
 const isDebug = !isProduction;
 
-// Master
-if (cluster.isMaster) {
-	console.log('Welcome to Misskey!');
+// Set process title
+process.title = 'Misskey File';
 
-	if (isDebug) {
-		logWarn('Productionモードではありません。本番環境で使用しないでください。');
+// Start app
+main();
+
+/**
+ * Init proccess
+ */
+function main(): void {
+	// Master
+	if (cluster.isMaster) {
+		master();
 	}
-
-	master();
-}
-// Workers
-else {
-	// Init mongo
-	initdb().then(db => {
-		(<any>global).db = db;
+	// Workers
+	else {
 		worker();
-	});
+	}
 }
 
 /**
  * Init master proccess
  */
 async function master(): Promise<void> {
-	logInfo(`environment: ${env}`);
-	logInfo(`maintainer: ${config.maintainer}`);
+	console.log(chalk.bold('Misskey File <aoi>'));
 
 	// Get repository info
 	const repository = await Git.Repository.open(__dirname + '/../');
-	logInfo(`commit: ${(await repository.getHeadCommit()).sha()}`);
+	const commit = await repository.getHeadCommit();
+	console.log(`commit: ${commit.sha()}`);
+	console.log(`        ${commit.date()}`);
 
-	if (!argv.options.hasOwnProperty('skip-check-dependencies')) {
-		checkDependencies();
+	if (isDebug) {
+		logWarn('It is not in the Production mode. Do not use in the Production environment.');
 	}
 
-		// Check if a port is being used
-	if (await portUsed.check(config.port, '127.0.0.1')) {
-		logFailed(`Port: ${config.port} is already used!`);
-		process.exit();
+	logInfo(`environment: ${env}`);
+
+	// Get machine info
+	const totalmem = (os.totalmem() / 1024 / 1024 / 1024).toFixed(1);
+	const freemem = (os.freemem() / 1024 / 1024 / 1024).toFixed(1);
+	logInfo(`MACHINE: ${os.hostname()}`);
+	logInfo(`MACHINE: CPU: ${os.cpus().length}core`);
+	logInfo(`MACHINE: MEM: ${totalmem}GB (available: ${freemem}GB)`);
+
+	// Load config
+	let conf: any;
+	try {
+		conf = config();
+	} catch (e) {
+		if (e.code !== 'ENOENT') {
+			logFailed('Failed to load configuration');
+			return process.exit();
+		}
+
+		logWarn('Config not found');
+		if (await yesno('Do you want setup now?', true)) {
+			await configGenerator();
+			conf = config();
+		} else {
+			logFailed('Failed to load configuration');
+			return process.exit();
+		}
 	}
 
-	// Count the machine's CPUs
-	const cpuCount = require('os').cpus().length;
+	logDone('Success to load configuration');
+	logInfo(`maintainer: ${conf.maintainer}`);
 
-	// Create a worker for each CPU
-	for (let i = 0; i < cpuCount; i++) {
-		cluster.fork();
+	// Check if a port is being used
+	if (await portUsed.check(conf.port)) {
+		logFailed(`Port: ${conf.port} is already used!`);
+		return process.exit();
 	}
+
+	// Spawn workers
+	spawn(() => {
+		console.log(chalk.bold.green(`\nmisskey-file is now running.`));
+
+		// Listen new workers
+		cluster.on('fork', worker => {
+			console.log(`Process forked: ${worker.id}`);
+		});
+
+		// Listen online workers
+		cluster.on('online', worker => {
+			console.log(`Process is now online: ${worker.id}`);
+		});
+
+		// Listen for dying workers
+		cluster.on('exit', worker => {
+			// Replace the dead worker,
+			// we're not sentimental
+			console.log(chalk.red(`${worker.id} died :(`));
+			cluster.fork();
+		});
+	});
 }
 
 /**
  * Init worker proccess
  */
 function worker(): void {
-	require('./server');
+	// Init mongo
+	initdb(config()).then(db => {
+		(<any>global).db = db;
+
+		// start server
+		require('./server');
+	}, err => {
+		console.error(err);
+		process.exit(0);
+	});
 }
 
-// Listen new workers
-cluster.on('fork', worker => {
-	console.log(`Process forked: ${worker.id}`);
-});
+/**
+ * Spawn workers
+ */
+function spawn(callback: any): void {
+	// Count the machine's CPUs
+	const cpuCount = os.cpus().length;
 
-// Listen online workers
-cluster.on('online', worker => {
-	console.log(`Process is now online: ${worker.id}`);
-});
+	const progress = new ProgressBar(cpuCount, 'Workers');
 
-// Listen for dying workers
-cluster.on('exit', worker => {
-	// Replace the dead worker,
-	// we're not sentimental
-	console.log(`\u001b[1;31m[${worker.id}] died :(\u001b[0m`);
-	cluster.fork();
-});
+	// Create a worker for each CPU
+	for (let i = 0; i < cpuCount; i++) {
+		const worker = cluster.fork();
+		worker.on('message', (message: any) => {
+			if (message === 'listening') {
+				progress.increment();
+			}
+		});
+	}
+
+	// on all workers started
+	progress.on('complete', () => {
+		callback();
+	});
+}
 
 // Dying away...
 process.on('exit', () => {

@@ -1,8 +1,5 @@
-//////////////////////////////////////////////////
-// FILE SERVER
-//////////////////////////////////////////////////
+// server
 
-import * as cluster from 'cluster';
 import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
@@ -13,10 +10,6 @@ import * as cors from 'cors';
 import * as mongodb from 'mongodb';
 
 import config from './config';
-
-const worker = cluster.worker;
-
-console.log(`Init ${worker.id} server...`);
 
 /**
  * Init app
@@ -81,18 +74,15 @@ app.get('/:id/:name', async (req, res): Promise<void> => {
  */
 const server = config.https.enable ?
 	https.createServer({
-		key: fs.readFileSync(config.https.keyPath),
-		cert: fs.readFileSync(config.https.certPath)
+		key: fs.readFileSync(config.https.key),
+		cert: fs.readFileSync(config.https.cert),
+		ca: fs.readFileSync(config.https.ca)
 	}, app) :
 	http.createServer(app);
 
 /**
  * Server listen
  */
-server.listen(config.bindPort, config.bindIp, () => {
-	const h = server.address().address;
-	const p = server.address().port;
-
-	console.log(
-		`\u001b[1;32m${worker.id} is now listening at ${h}:${p}\u001b[0m`);
+server.listen(config.port, () => {
+	process.send('listening');
 });

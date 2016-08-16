@@ -2,4 +2,5 @@
 /built
 /typings
 npm-debug.log
+/.config
 /tmp
