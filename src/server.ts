@@ -12,6 +12,10 @@ import * as gm from 'gm';
 
 import config from './config';
 
+const env = process.env.NODE_ENV;
+const isProduction = env === 'production';
+const isDebug = !isProduction;
+
 /**
  * Init app
  */
@@ -41,7 +45,8 @@ app.get('/', (req, res) => {
 });
 
 app.get('/default-avatar.jpg', (req, res) => {
-	res.sendFile(__dirname + '/resources/avatar.jpg');
+	const file = fs.readFileSync(__dirname + '/resources/avatar.jpg');
+	send(file, 'image/jpeg', req, res);
 });
 
 /**
@@ -50,48 +55,37 @@ app.get('/default-avatar.jpg', (req, res) => {
 const db = <mongodb.Db>(<any>global).db;
 const files = db.collection('drive_files');
 
-async function send(req: express.Request, res: express.Response): Promise<any> {
-	const file = await files.findOne({_id: new mongodb.ObjectID(req.params.id)});
-
-	if (file === null) {
-		res.status(404).sendFile(__dirname + '/resources/dummy.png');
+async function raw(data: Buffer, type: string, download: boolean, res: express.Response): Promise<any> {
+	if (isDebug) {
+		res.sendFile(__dirname + '/resources/bad-egg.png');
 		return;
 	}
 
-	res.header({
-		'Content-Type': file.type,
-		'Content-Length': file.datasize
-	});
+	res.header('Content-Type', type);
 
-	if (req.query.download) {
+	if (download) {
 		res.header('Content-Disposition', 'attachment');
 	}
 
-	res.send(file.data.buffer);
+	res.send(data);
 }
 
-async function thumbnail(req: express.Request, res: express.Response): Promise<any> {
-	const file = await files.findOne({_id: new mongodb.ObjectID(req.params.id)});
+async function thumbnail(data: Buffer, type: string, resize: number, quality: number, res: express.Response): Promise<any> {
 
-	if (file === null) {
-		res.status(404).sendFile(__dirname + '/resources/dummy.png');
-		return;
-	}
-
-	if (!/^image\/.*$/.test(file.type)) {
+	if (!/^image\/.*$/.test(type)) {
 		res.sendFile(__dirname + '/resources/dummy.png');
 		return;
 	}
 
-	let g = gm(file.data.buffer);
+	let g = gm(data);
 
-	if (req.query.size) {
-		g = g.resize(req.query.size, req.query.size);
+	if (resize) {
+		g = g.resize(resize, resize);
 	}
 
 	g
 	.compress('jpeg')
-	.quality(req.query.quality || 80)
+	.quality(quality || 80)
 	.toBuffer('jpeg', (err, img) => {
 		if (err !== undefined && err !== null) {
 			console.error(err);
@@ -104,12 +98,23 @@ async function thumbnail(req: express.Request, res: express.Response): Promise<a
 	});
 }
 
-app.get('/:id/:name', async (req, res): Promise<void> => {
+function send(data: Buffer, type: string, req: express.Request, res: express.Response): void {
 	if (req.query.thumbnail !== undefined) {
-		thumbnail(req, res);
+		thumbnail(data, type, req.query.size, req.query.quality, res);
 	} else {
-		send(req, res);
+		raw(data, type, req.query.download !== undefined, res);
 	}
+}
+
+app.get('/:id/:name', async (req, res): Promise<void> => {
+	const file = await files.findOne({_id: new mongodb.ObjectID(req.params.id)});
+
+	if (file === null) {
+		res.status(404).sendFile(__dirname + '/resources/dummy.png');
+		return;
+	}
+
+	send(file.data.buffer, file.type, req, res);
 });
 
 /**
