@@ -50,7 +50,7 @@ app.get('/default-avatar.jpg', (req, res) => {
 const db = <mongodb.Db>(<any>global).db;
 const files = db.collection('drive_files');
 
-app.get('/:id/:name', async (req, res): Promise<void> => {
+async function send(req: express.Request, res: express.Response): Promise<any> {
 	const file = await files.findOne({_id: new mongodb.ObjectID(req.params.id)});
 
 	if (file === null) {
@@ -68,9 +68,9 @@ app.get('/:id/:name', async (req, res): Promise<void> => {
 	}
 
 	res.send(file.data.buffer);
-});
+}
 
-app.get('/:id/:name/thumbnail', async (req, res): Promise<void> => {
+async function thumbnail(req: express.Request, res: express.Response): Promise<any> {
 	const file = await files.findOne({_id: new mongodb.ObjectID(req.params.id)});
 
 	if (file === null) {
@@ -102,6 +102,14 @@ app.get('/:id/:name/thumbnail', async (req, res): Promise<void> => {
 		res.header('Content-Type', 'image/jpeg');
 		res.send(img);
 	});
+}
+
+app.get('/:id/:name', async (req, res): Promise<void> => {
+	if (req.query.thumbnail !== undefined) {
+		thumbnail(req, res);
+	} else {
+		send(req, res);
+	}
 });
 
 /**
