@@ -56,7 +56,7 @@ const db = <mongodb.Db>(<any>global).db;
 const files = db.collection('drive_files');
 
 async function raw(data: Buffer, type: string, download: boolean, res: express.Response): Promise<any> {
-	if (isDebug) {
+	if (isDebug && !download) {
 		res.sendFile(__dirname + '/resources/bad-egg.png');
 		return;
 	}
