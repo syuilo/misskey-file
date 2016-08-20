@@ -106,6 +106,17 @@ function send(data: Buffer, type: string, req: express.Request, res: express.Res
 	}
 }
 
+app.get('/:id', async (req, res): Promise<void> => {
+	const file = await files.findOne({_id: new mongodb.ObjectID(req.params.id)});
+
+	if (file === null) {
+		res.status(404).sendFile(__dirname + '/resources/dummy.png');
+		return;
+	}
+
+	send(file.data.buffer, file.type, req, res);
+});
+
 app.get('/:id/:name', async (req, res): Promise<void> => {
 	const file = await files.findOne({_id: new mongodb.ObjectID(req.params.id)});
 
