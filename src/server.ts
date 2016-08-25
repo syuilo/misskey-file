@@ -73,8 +73,7 @@ async function raw(data: Buffer, type: string, download: boolean, res: express.R
 async function thumbnail(data: Buffer, type: string, resize: number, quality: number, res: express.Response): Promise<any> {
 
 	if (!/^image\/.*$/.test(type)) {
-		res.sendFile(__dirname + '/resources/dummy.png');
-		return;
+		data = fs.readFileSync(__dirname + '/resources/dummy.png');
 	}
 
 	let g = gm(data);
