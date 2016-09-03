@@ -5,7 +5,7 @@ Misskey File
 [![][dependencies-badge]][dependencies-link]
 [![][mit-badge]][mit]
 
-An file server of *Misskey*.
+A file server of *Misskey*.
 
 Required
 --------
