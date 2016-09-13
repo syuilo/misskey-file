@@ -70,6 +70,7 @@ class ProgressBar extends ev.EventEmitter {
 			case 2: i = '|'; break;
 			case 3: i = '/'; break;
 			case null: i = '+'; break;
+			default: break;
 		}
 
 		return `${i} ${t}[${vs}${ps}] ${this.value}/${this.max} ${percentages}`;
