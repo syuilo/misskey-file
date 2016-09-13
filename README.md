@@ -14,6 +14,14 @@ Required
 * MongoDB (Coreと共用)
 * GraphicsMagick
 
+Build
+-----
+1. `git clone git://github.com/syuilo/misskey-file.git`
+2. `cd misskey-file`
+3. `npm install`
+4. `npm run dtsm`
+5. `npm run build`
+
 Repositories
 ------------
 * **misskey-file** ... :round_pushpin: This repository
