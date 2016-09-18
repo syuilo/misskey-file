@@ -11,7 +11,7 @@ Required
 --------
 * Node.js
   * Python (2.7x)
-* MongoDB (Coreと共用)
+* MongoDB (shared with Core)
 * GraphicsMagick
 
 Build
