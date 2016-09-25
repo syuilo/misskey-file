@@ -39,7 +39,7 @@ app.use(cors());
  * Statics
  */
 app.use('/resources', express.static(__dirname + '/resources'), {
-	maxAge: 1000 * 60 * 60 * 24 * 7 // 一週間
+	maxAge: 1000 * 60 * 60 * 24 * 365 // 一年
 });
 
 app.get('/', (req, res) => {
