@@ -38,7 +38,9 @@ app.use(cors());
 /**
  * Statics
  */
-app.use('/resources', express.static(__dirname + '/resources'));
+app.use('/resources', express.static(__dirname + '/resources'), {
+	maxAge: 1000 * 60 * 60 * 24 * 7 // 一週間
+});
 
 app.get('/', (req, res) => {
 	res.render('index');
