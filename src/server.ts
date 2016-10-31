@@ -51,6 +51,11 @@ app.get('/default-avatar.jpg', (req, res) => {
 	send(file, 'image/jpeg', req, res);
 });
 
+app.get('/app-default.jpg', (req, res) => {
+	const file = fs.readFileSync(__dirname + '/resources/dummy.png');
+	send(file, 'image/png', req, res);
+});
+
 /**
  * Routing
  */
