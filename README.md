@@ -1,6 +1,8 @@
 Misskey File
 ============
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/syuilo/misskey-file.svg)](https://greenkeeper.io/)
+
 [![][travis-badge]][travis-link]
 [![][dependencies-badge]][dependencies-link]
 [![][mit-badge]][mit]
